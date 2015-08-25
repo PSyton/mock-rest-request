@@ -165,7 +165,7 @@ describe('mockRequests()', function () {
       .expect('{"mock":"data"}');
 
     request(server)
-      .get('/list')
+      .get('/mock-list')
       .expect(200)
       .expect('GET:\n /api\nPUT:\nPOST:\nPATCH:\nDELETE:\n', done);
   });

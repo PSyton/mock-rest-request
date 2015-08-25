@@ -87,6 +87,17 @@ module.exports = function mockRequests(options) {
         res.write("\"" + mockId + "\"");
         res.end();
       });
+    } else if (req.method === 'POST' && req.url.indexOf('/mock-clear') === 0) {
+      mocks = {
+        GET: {},
+        PUT: {},
+        POST: {},
+        PATCH: {},
+        DELETE: {}
+      };
+      mocksById = {};
+      res.writeHead(200);
+      res.end();
     } else if (req.method === 'POST' && req.url.indexOf('/reset') === 0) {
       req.on('data', function (data) {
         body += data;
