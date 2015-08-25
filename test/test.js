@@ -63,12 +63,14 @@ describe('mockRequests()', function () {
       .post('/mock/api')
       .set('mock-response', '500')
       .send({mock: 'data'})
-      .end(function () {});
+      .end(function () {
 
-    request(server)
-      .get('/api')
-      .expect(500)
-      .expect('{"mock":"data"}', done);
+      request(server)
+        .get('/api')
+        .expect(500)
+        .expect('{"mock":"data"}', done);
+    });
+
   });
 
   it('should allow a different method', function (done) {
@@ -76,17 +78,20 @@ describe('mockRequests()', function () {
       .post('/mock/api')
       .set('mock-method', 'POST')
       .send({mock: 'data'})
-      .end(function () {});
+      .end(function () {
 
-    request(server)
-      .get('/api')
-      .expect(200)
-      .expect('not mocked');
+      request(server)
+        .get('/api')
+        .expect(200)
+        .expect('not mocked');
 
-    request(server)
-      .post('/api')
-      .expect(200)
-      .expect('{"mock":"data"}', done);
+      request(server)
+        .post('/api')
+        .expect(200)
+        .expect('{"mock":"data"}', done);
+
+    });
+
   });
 
   it('should stop mocking after a reset request', function (done) {
@@ -103,16 +108,58 @@ describe('mockRequests()', function () {
           .expect('{"mock":"data"}');
 
         request(server)
-          .post('/reset')
-          .send(id)
-          .end(function () {});
+          .get('/mock-reset/' + id)
+          .end(function () {
 
-        request(server)
-          .get('/api')
-          .expect(200)
-          .expect('not mocked', done);
+          request(server)
+            .get('/api')
+            .expect(200)
+            .expect('not mocked', done);
 
+	});
       });
+  });
+
+  it('should stop mocking all after empty reset request', function (done) {
+    var id;
+    request(server)
+      .post('/mock/api')
+      .send({mock: 'data'})
+      .end(function (err, res) {});
+
+    request(server)
+      .post('/mock/api2')
+      .send({mock: 'data'})
+      .end(function (err, res) {});
+
+    request(server)
+      .get('/api')
+      .expect(200)
+      .expect('{"mock":"data"}');
+
+    request(server)
+      .get('/api2')
+      .expect(200)
+      .expect('{"mock":"data"}');
+
+
+    request(server)
+      .get('/mock-reset')
+      .end(function () {});
+
+
+    request(server)
+      .get('/api')
+      .expect(200)
+      .expect('not mocked', function() {
+
+      request(server)
+        .get('/api2')
+        .expect(200)
+        .expect('not mocked', done);
+
+    });
+
   });
 
   it('should allow arbitrary methods', function (done) {
@@ -125,12 +172,14 @@ describe('mockRequests()', function () {
     request(server)
       .get('/api')
       .expect(200)
-      .expect('not mocked');
+      .expect('not mocked', function() {
 
-    request(server)
-      .copy('/api')
-      .expect(200)
-      .expect('{"mock":"data"}', done);
+      request(server)
+        .copy('/api')
+        .expect(200)
+        .expect('{"mock":"data"}', done);
+    });
+
   });
 
   it('should allow limit', function (done) {
@@ -157,17 +206,20 @@ describe('mockRequests()', function () {
     request(server)
       .post('/mock/api')
       .send({mock: 'data'})
-      .end(function () {});
+      .end(function () {
 
-    request(server)
-      .get('/api')
-      .expect(200)
-      .expect('{"mock":"data"}');
+      request(server)
+        .get('/api')
+        .expect(200)
+        .expect('{"mock":"data"}');
 
-    request(server)
-      .get('/mock-list')
-      .expect(200)
-      .expect('GET:\n /api\nPUT:\nPOST:\nPATCH:\nDELETE:\n', done);
+      request(server)
+        .get('/mock-list')
+        .expect(200)
+        .expect('GET:\n /api\nPUT:\nPOST:\nPATCH:\nDELETE:\n', done);
+
+    });
+
   });
 
 });

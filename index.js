@@ -33,6 +33,18 @@ module.exports = function mockRequests(options) {
     }
   }
 
+  function clean() {
+    mocks = {
+      GET: {},
+      PUT: {},
+      POST: {},
+      PATCH: {},
+      DELETE: {}
+    };
+
+    mocksById = {};
+  }
+
   function mocksForRequest(req) {
     var method = req.headers['mock-method'] || 'GET';
 
@@ -84,29 +96,19 @@ module.exports = function mockRequests(options) {
         };
 
         res.writeHead(200);
-        res.write("\"" + mockId + "\"");
+        res.write("" + mockId);
         res.end();
       });
-    } else if (req.method === 'POST' && req.url.indexOf('/mock-clear') === 0) {
-      mocks = {
-        GET: {},
-        PUT: {},
-        POST: {},
-        PATCH: {},
-        DELETE: {}
-      };
-      mocksById = {};
+    } else if (req.method === 'GET' && req.url.indexOf('/mock-reset') === 0) {
+      var mockId = req.url.substring(11);
+      if (mockId) {
+        mockId = mockId.substring(1);
+        remove(mockId);
+      } else {
+        clean();
+      }
       res.writeHead(200);
       res.end();
-    } else if (req.method === 'POST' && req.url.indexOf('/reset') === 0) {
-      req.on('data', function (data) {
-        body += data;
-      });
-      req.on('end', function () {
-        remove(JSON.parse(body));
-        res.writeHead(200);
-        res.end();
-      });
     } else if (req.url.indexOf('/mock-list') === 0) {
       res.writeHead(200, {
         'Content-Type': 'text/plain'
