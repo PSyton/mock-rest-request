@@ -96,7 +96,7 @@ module.exports = function mockRequests(options) {
         res.writeHead(200);
         res.end();
       });
-    } else if (req.url.indexOf('/list') === 0) {
+    } else if (req.url.indexOf('/mock-list') === 0) {
       res.writeHead(200, {
         'Content-Type': 'text/plain'
       });
