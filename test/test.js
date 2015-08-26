@@ -185,7 +185,7 @@ describe('mockRequests()', function () {
   it('should allow limit', function (done) {
     request(server)
       .post('/mock/api')
-      .set('mock-limit', '1')
+      .set('mock-limit', '2')
       .set('mock-method', 'GET')
       .send({mock: 'data'})
       .end(function () {});
@@ -193,25 +193,80 @@ describe('mockRequests()', function () {
     request(server)
       .get('/api')
       .expect(200)
-      .expect('{"mock":"data"}', done);
+      .expect('{"mock":"data"}', function() {
+
+        request(server)
+          .get('/api')
+          .expect(200)
+          .expect('{"mock":"data"}', function() {
+
+            request(server)
+              .get('/api')
+              .expect(200)
+              .expect('not mocked', done);
+
+          });
+      });
+  });
+
+  it('Allow mock sequence', function (done) {
+
+    request(server)
+      .post('/mock/api')
+      .set('mock-method', 'GET')
+      .send({mock: 'data1'})
+      .end(function () {
+        request(server)
+          .post('/mock/api')
+          .set('mock-method', 'GET')
+          .send({mock: 'data2'})
+          .end(function () {});
+      });
+
+
 
     request(server)
       .get('/api')
       .expect(200)
-      .expect('not mocked');
+      .expect('{"mock":"data1"}', function() {
+        request(server)
+          .get('/api')
+          .expect(200)
+          .expect('{"mock":"data2"}', function() {
+            request(server)
+              .get('/api')
+              .expect(200)
+              .expect('not mocked', done);
+          });
+      });
   });
 
+  it('default limit is 1', function (done) {
+    request(server)
+      .post('/mock/api')
+      .set('mock-method', 'GET')
+      .send({mock: 'data'})
+      .end(function () {});
+
+    request(server)
+      .get('/api')
+      .expect(200)
+      .expect('{"mock":"data"}', function() {
+
+        request(server)
+          .get('/api')
+          .expect(200)
+          .expect('not mocked', done);
+
+      });
+
+  });
 
   it('should list all mocked methods and paths', function (done) {
     request(server)
       .post('/mock/api')
       .send({mock: 'data'})
       .end(function () {
-
-      request(server)
-        .get('/api')
-        .expect(200)
-        .expect('{"mock":"data"}');
 
       request(server)
         .get('/mock-list')

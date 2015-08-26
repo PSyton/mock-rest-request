@@ -45,14 +45,37 @@ module.exports = function mockRequests(options) {
     mocksById = {};
   }
 
+  function getMethod(aReq) {
+    return aReq.headers['mock-method'] || 'GET';
+  }
+
   function mocksForRequest(req) {
-    var method = req.headers['mock-method'] || 'GET';
+    var method = getMethod(req);
 
     if(typeof mocks[method] === 'undefined')
       mocks[method] = {};
 
     return mocks[method];
   }
+
+  function MockQueue(aId) {
+    this.data = [];
+    this.id = aId;
+  }
+
+  MockQueue.prototype.push = function(aData) {
+    this.data.push(aData);
+  };
+
+  MockQueue.prototype.take = function() {
+    var result = this.data[0];
+    result.count--;
+    if (result.count === 0) {
+      this.data.splice(0, 1);
+      result.last = (this.data.length === 0);
+    }
+    return result;
+  };
 
   return function (req, res, next) {
     var body = '';
@@ -64,8 +87,7 @@ module.exports = function mockRequests(options) {
       });
       req.on('end', function () {
 
-      	var limit = 0;
-
+      	var limit = 1;
         var headers = {
           'Content-Type': req.headers['content-type']
         };
@@ -75,28 +97,30 @@ module.exports = function mockRequests(options) {
               headers[key.substring(12)] = req.headers[key];
             }
             if ('mock-limit' === key) {
-              limit = parseInt(req.headers[key]);
+              limit = parseInt(req.headers[key]) || 1;
             }
           }
         }
 
         var m = mocksForRequest(req);
-        var mockId = nextId();
-        m[path] = {
+        if (!m[path]) {
+          m[path] = new MockQueue(nextId());
+        }
+
+        m[path].push({
           body: body,
           responseCode: req.headers['mock-response'] || 200,
           headers: headers,
-          limit: limit,
-          id: mockId
-        };
+          count: limit
+        });
 
-        mocksById[mockId] = {
+        mocksById[m[path].id] = {
           path: path,
-          method: req.headers['mock-method'] || 'GET'
+          method: getMethod(req)
         };
 
         res.writeHead(200);
-        res.write("" + mockId);
+        res.write("" + m[path].id);
         res.end();
       });
     } else if (req.method === 'GET' && req.url.indexOf('/mock-reset') === 0) {
@@ -121,16 +145,14 @@ module.exports = function mockRequests(options) {
       }
       res.end();
     } else {
-      var mockedResponse = mocks[req.method][req.url];
-      if (mockedResponse) {
-        res.writeHead(mockedResponse.responseCode, mockedResponse.headers);
-        res.write(mockedResponse.body);
+      var mockedQueue = mocks[req.method][req.url];
+      if (mockedQueue) {
+        var r = mockedQueue.take();
+        res.writeHead(r.responseCode, r.headers);
+        res.write(r.body);
         res.end();
-        if (mockedResponse.limit > 0) {
-          mockedResponse.limit--;
-          if (mockedResponse.limit === 0) {
-            remove(mockedResponse.id);
-          }
+        if (r.last) {
+          remove(mockedQueue.id);
         }
       } else {
         next();
